@@ -22,3 +22,4 @@ RUN activate GEO_ENV && \
     conda install --name GEO_ENV --yes --channel conda-forge poppler
 RUN apt-get install make
 RUN conda install --name GEO_ENV --yes --channel conda-forge pyarrow
+RUN apt-get install unzip

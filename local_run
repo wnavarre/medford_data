@@ -4,7 +4,7 @@ HERE=`dirname "$0"`
 
 docker build -t "medford-data" . &&
 docker run \
-       --mount readonly,type=bind,source=$HERE/data,target=/root/data \
+       --mount type=bind,source=$HERE/data,target=/root/data \
        --mount readonly,type=bind,source=$HERE/bin,target=/root/bin \
        --mount type=bind,source=$HERE/intermediate,target=/root/intermediate \
        -it \

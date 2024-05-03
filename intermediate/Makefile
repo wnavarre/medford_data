@@ -5,6 +5,15 @@ ALL: \
 	./source/tax.pqt \
 	./intermediate/with_small_apts.pqt
 
+../data/L3_SHP_M176_Medford: ../data
+	curl "https://s3.us-east-1.amazonaws.com/download.massgis.digital.mass.gov/shapefiles/l3parcels/L3_SHP_M176_MEDFORD.zip" -o ../data/L3_SHP_M176_MEDFORD.zip
+	test -f ../data/L3_SHP_M176_MEDFORD.zip
+	unzip ../data/L3_SHP_M176_MEDFORD.zip -d ../data
+	rm ../data/L3_SHP_M176_MEDFORD.zip
+
+../data/L3_SHP_M176_Medford/%: ../data/L3_SHP_M176_Medford
+	test -f $@
+
 source:
 	mkdir -p source
 
