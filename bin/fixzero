@@ -1,0 +1,29 @@
+#! /usr/bin/env python3
+
+import sys
+import geopandas
+import pandas as pd
+
+colnames = sys.argv[1:-2]
+if not colnames:
+        print("In the specified columns, replace the word 'ZERO' that appears at the beginning of the field with the numeral '0'")
+        print("USAGE: ./fixzero colname[...] srcfile destfile")
+
+srcfile = sys.argv[-2]
+destfile = sys.argv[-1]
+
+d = geopandas.read_parquet(srcfile)
+
+def fix_one_string(st):
+        if st is None: return ""
+        if st == "ZERO": return "0"
+        if st[0:5] == "ZERO ": return "0 " + st[5:]
+        return st
+
+def fix(column):
+        pystrings = (fix_one_string(st) for st in column)
+        return pd.Series(pystrings, index=column.index)
+
+for cn in colnames:
+        d[cn] = fix(d[cn])
+d.to_parquet(destfile)

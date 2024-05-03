@@ -1,0 +1,22 @@
+#! /usr/bin/env python3
+
+import sys
+import geopandas
+
+src  = sys.argv[1]
+dest = sys.argv[2]
+
+assess = geopandas.read_parquet(src)
+assess["USE_CODE_3"] = assess["USE_CODE"].str[0:3]
+
+assess["IS_SF"] = assess["USE_CODE_3"] == "101"
+assess["IS_DUPLEX"] = assess["USE_CODE_3"] == "104"
+assess["IS_TRIPLEX"] = assess["USE_CODE_3"] == "105"
+assess["IS_FOUR_TO_EIGHT"] = assess["USE_CODE_3"] == "111"
+assess["IS_FOUR_PLUS_APT"] = assess["USE_CODE_3"].str[0:2] == "11"
+assess["IS_NORMAL_RESIDENTIAL"] = (
+      (assess["USE_CODE_3"].str[0:1] == "10") |
+      (assess["IS_FOUR_PLUS_APT"])
+)
+
+assess.to_parquet(dest)
