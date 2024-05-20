@@ -1,0 +1,58 @@
+#! /usr/bin/env python3
+
+import sys
+import geopandas
+import pandas as pd
+
+srcfile = sys.argv[1]
+destfile = sys.argv[2]
+
+d = geopandas.read_parquet(srcfile)
+
+class call_from_tuple:
+    __slots__ = "f"
+    def __init__(self, f): self.f = f
+    def __call__(self, tup): return self.f(*tup)
+        
+
+def _map_multiple_columns(f, cs, *, dtype=None):
+    return pd.Series(map(call_from_tuple(f), zip(*cs)), index=cs[0].index, dtype=dtype)
+
+def map_col(f, c, *addl, dtype=None):
+    if addl: return _map_multiple_columns(f, (c,) + tuple(addl), dtype=dtype)
+    return pd.Series(map(f, iter(c)), index=c.index, dtype=dtype)
+
+def address_number_split_index(v):
+    if not isinstance(v, str): return -1
+    idx = 0
+    while (idx < len(v)) and (v[idx] in "0123456789"): idx += 1
+    if not idx: return -1
+    return idx
+
+def address_number(v, idx):
+    if idx in (None, -1): return -255
+    if not isinstance(idx, int): raise TypeError("Not an integer: " + str(idx))
+    if v is None: return -1
+    return int(v[0:idx])
+
+def address_nonumber(v, idx):
+    if idx in (None, -1): return -255
+    if not isinstance(idx, int): raise TypeError("Not an integer: " + str(idx))
+    if v is None: return -255
+    return v[idx:].strip()
+
+d["IS_MEDFORD_OWNER"] = d.OWN_ZIP.str[0:5] == "02155"
+SITE_ADDR_NUM_SPLIT = map_col(address_number_split_index, d.SITE_ADDR, dtype=int)
+OWN_ADDR_NUM_SPLIT = map_col(address_number_split_index, d.OWN_ADDR, dtype=int)
+d["SITE_ADDR_NUM"] = map_col(address_number, d.SITE_ADDR, SITE_ADDR_NUM_SPLIT)
+d["OWN_ADDR_NUM"]  = map_col(address_number, d.OWN_ADDR, OWN_ADDR_NUM_SPLIT)
+d["SITE_ADDR_NONUM"] = map_col(address_nonumber, d.SITE_ADDR, SITE_ADDR_NUM_SPLIT)
+d["OWN_ADDR_NONUM"]  = map_col(address_nonumber, d.OWN_ADDR, SITE_ADDR_NUM_SPLIT)
+
+# We assume it's likely an owner occupier if it seems
+# that the difference between the address and that of the owner is < 5,
+# and the owner has zip code == 02155.
+
+d["LIKELY_OWNER_OCCUPIER"] = ((d.SITE_ADDR_NUM - d.OWN_ADDR_NUM).abs() < 5) & d["IS_MEDFORD_OWNER"]
+
+d.to_parquet(destfile)

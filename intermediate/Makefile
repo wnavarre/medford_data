@@ -8,7 +8,7 @@ ALL: \
 ../data/L3_SHP_M176_Medford: ../data
 	curl "https://s3.us-east-1.amazonaws.com/download.massgis.digital.mass.gov/shapefiles/l3parcels/L3_SHP_M176_MEDFORD.zip" -o ../data/L3_SHP_M176_MEDFORD.zip
 	test -f ../data/L3_SHP_M176_MEDFORD.zip
-	unzip ../data/L3_SHP_M176_MEDFORD.zip -d ../data
+	unzip ../data/L3_SHP_M176_MEDFORD.zip -u -d ../data
 	rm ../data/L3_SHP_M176_MEDFORD.zip
 
 ../data/L3_SHP_M176_Medford/%: ../data/L3_SHP_M176_Medford
@@ -16,6 +16,9 @@ ALL: \
 
 source:
 	mkdir -p source
+
+output:
+	mkdir -p output
 
 ./source/assess-naive.pqt: source ../data/L3_SHP_M176_Medford/M176Assess_CY23_FY23.cpg ../data/L3_SHP_M176_Medford/M176Assess_CY23_FY23.dbf ../data/L3_SHP_M176_Medford/M176Assess_CY23_FY23.dbf.xml
 	../bin/2pqt ../data/L3_SHP_M176_Medford/M176Assess_CY23_FY23.dbf ./source/assess-naive.pqt
@@ -37,3 +40,10 @@ intermediate:
 
 ./intermediate/with_small_apts.pqt: source ../bin/identify_small_apts ./source/assess.pqt intermediate
 	../bin/identify_small_apts ./source/assess.pqt ./intermediate/with_small_apts.pqt
+
+./intermediate/with_owner_analysis.pqt: ../bin/identify_owner_occupiers ./intermediate/with_small_apts.pqt
+	../bin/identify_owner_occupiers ./intermediate/with_small_apts.pqt ./intermediate/with_owner_analysis.pqt
+
+./output/rent_control.txt: ./output ./intermediate/with_owner_analysis.pqt ./scripts/rent_control.py
+	python3 ./scripts/rent_control.py > ./output/rent_control.txt.tmp && \
+	mv ./output/rent_control.txt.tmp ./output/rent_control.txt
